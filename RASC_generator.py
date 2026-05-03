@@ -2,8 +2,10 @@
 #                 (c) AEROPIC 2026
 #  
 # https://github.com/aeropic/RASC_catalog_generator
+# http://www.messier.seds.org/xtra/similar/rasc-ngc.html
 #
 #   V1.1 : Restore Zoom/Unzoom function from V1
+#          database updated from link above (messier seds)
 #======================================================
 
 # -*- coding: utf-8 -*-
@@ -15,8 +17,8 @@ import sys
 from datetime import datetime
 
 # --- PAGE LAYOUT PARAMETERS ---
-CARD_SIZE_MIN = "120px"  # minimal size of a thumbnail
-THUMB_SIZE = (400, 400)  # max thumbnail dimensions
+CARD_SIZE_MIN = "120px"
+THUMB_SIZE = (400, 400)
 
 # --- DEPENDANCIES AUTO-INSTALL ---
 try:
@@ -32,20 +34,21 @@ except ImportError:
 lang = 'fr'
 
 type_map = {
-    'G': 'Galaxie',              # Galaxy
-    'NP': 'Nébuleuse Planétaire', # Planetary Nebula
-    'AO': 'Amas Ouvert',          # Open Cluster
-    'AG': 'Amas Globulaire',      # Globular Cluster
-    'N': 'Nébuleuse',              # Nebula
-    'RS': 'Reste Supernova',      # Supernova Remnant
-    'NA': 'Nébuleuse/Amas'        # Nebula/Cluster
+    'G': 'Galaxie',
+    'PN': 'Nébuleuse Planétaire',
+    'OC': 'Amas Ouvert',
+    'GC': 'Amas Globulaire',
+    'EN': 'Nébuleuse par émission',
+    'RN': 'Nébuleuse par réflexion',
+    'SNR': 'Reste de Supernova',
+    'E/RN': 'Nébuleuse Ém./Réf.'
 }
 
 season_map = {
-    'P': 'Printemps', # Spring
-    'E': 'Été',       # Summer
-    'A': 'Automne',   # Autumn
-    'H': 'Hiver'      # Winter
+    'P': 'Printemps',
+    'E': 'Été',
+    'A': 'Automne',
+    'H': 'Hiver'
 }
 
 texts = {
@@ -63,124 +66,129 @@ texts = {
     }
 }
 
-# Catalogue : [RASC_ID, NGC_ID, Type_Code, Season_Code, Mag, Constellation, Taille, Description]
+# Catalogue mis à jour selon le nouveau tableau fourni
+# Format : [ID_RASC, NGC_ID, Type_Code, Season_Code, Mag, Const, Size, Remarks]
 rasc_data = [
-    ["1", "6503", "G", "E", "10.2", "Dragon", "7.1'x2.4'", "Dwarf spiral"],
-    ["2", "6543", "NP", "E", "8.1", "Dragon", "18\"", "Cat's Eye Nebula"],
-    ["3", "6633", "AO", "E", "4.6", "Ophiuchus", "27'", "Italy Cluster"],
-    ["4", "6572", "NP", "E", "8.1", "Ophiuchus", "11\"x9\"", "Emerald Nebula"],
-    ["5", "6369", "NP", "E", "11.4", "Ophiuchus", "28\"", "Little Ghost Nebula"],
-    ["6", "6210", "NP", "E", "8.8", "Hercule", "14\"x11\"", "Turtle Nebula"],
-    ["7", "6207", "G", "E", "11.4", "Hercule", "3.3'x1.2'", "Spiral near M13"],
-    ["8", "6445", "NP", "E", "11.2", "Sagittaire", "34\"", "Box Nebula"],
-    ["9", "6514", "NA", "E", "6.3", "Sagittaire", "28'", "M20 Trifid Nebula"],
-    ["10", "6818", "NP", "E", "9.3", "Sagittaire", "17\"", "Little Gem Nebula"],
-    ["11", "6826", "NP", "E", "8.8", "Cygne", "25\"", "Blinking Planetary"],
-    ["12", "7000", "N", "E", "4.0", "Cygne", "120'x100'", "North America Nebula"],
-    ["13", "6960", "RS", "E", "7.0", "Cygne", "70'x6'", "Western Veil Nebula"],
-    ["14", "6992", "RS", "E", "7.0", "Cygne", "60'x30'", "Eastern Veil Nebula"],
-    ["15", "7009", "NP", "E", "8.0", "Verseau", "28\"", "Saturn Nebula"],
-    ["16", "7293", "NP", "A", "7.3", "Verseau", "18'", "Helix Nebula"],
-    ["17", "7331", "G", "A", "9.5", "Pégase", "10.5'x3.7'", "Deer Lick Group"],
-    ["18", "7662", "NP", "A", "8.3", "Andromède", "15\"", "Blue Snowball"],
-    ["19", "891", "G", "A", "9.9", "Andromède", "13.5'x2.5'", "Outer Limits Galaxy"],
-    ["20", "253", "G", "A", "7.2", "Sculpteur", "27.5'x6.8'", "Silver Coin Galaxy"],
-    ["21", "772", "G", "A", "10.3", "Bélier", "7.2'x4.3'", "Spiral galaxy"],
-    ["22", "1232", "G", "A", "9.8", "Eridan", "7.4'x6.4'", "Face-on spiral"],
-    ["23", "1365", "G", "H", "9.6", "Fourneau", "11.2'x6.2'", "Great Barred Spiral"],
-    ["24", "1097", "G", "H", "9.5", "Fourneau", "9.3'x6.3'", "Spiral with jets"],
-    ["25", "2022", "NP", "H", "11.6", "Orion", "18\"", "Planetary nebula"],
-    ["26", "1973", "N", "H", "7.0", "Orion", "5'x5'", "Running Man Nebula"],
-    ["27", "2024", "N", "H", "4.0", "Orion", "30'x30'", "Flame Nebula"],
-    ["28", "2194", "AO", "H", "8.5", "Orion", "10'", "Rich open cluster"],
-    ["29", "2359", "N", "H", "11.5", "Grand Chien", "10'x8'", "Thor's Helmet"],
-    ["30", "2362", "AO", "H", "4.1", "Grand Chien", "9'", "Tau Canis Majoris Cluster"],
-    ["31", "2403", "G", "H", "8.2", "Girafe", "21.9'x12.3'", "Spiral galaxy"],
-    ["32", "1501", "NP", "H", "11.5", "Girafe", "52\"", "Oyster Nebula"],
-    ["33", "1502", "AO", "H", "6.9", "Girafe", "20'", "Kemble's Cascade"],
-    ["34", "1535", "NP", "H", "9.6", "Eridan", "18\"", "Cleopatra's Eye"],
-    ["35", "2903", "G", "P", "9.0", "Lion", "12.6'x6.0'", "Bright spiral"],
-    ["36", "3344", "G", "P", "9.7", "Petit Lion", "7.1'x6.5'", "Face-on spiral"],
-    ["37", "3521", "G", "P", "9.0", "Lion", "11'x5'", "Bubble Galaxy"],
-    ["38", "3115", "G", "P", "9.1", "Hydre", "7.2'x2.4'", "Spindle Galaxy"],
-    ["39", "3242", "NP", "P", "7.7", "Hydre", "25\"", "Ghost of Jupiter"],
-    ["40", "4361", "NP", "P", "10.9", "Corbeau", "1.3'", "Planetary nebula"],
-    ["41", "4038", "G", "P", "10.3", "Corbeau", "3.4'x1.7'", "Antennae Galaxies"],
-    ["42", "4565", "G", "P", "9.2", "Chevelure", "15.8'x2.1'", "Needle Galaxy"],
-    ["43", "4559", "G", "P", "10.0", "Chevelure", "10.7'x4.4'", "Spiral galaxy"],
-    ["44", "4494", "G", "P", "9.8", "Chevelure", "4.8'x3.5'", "Elliptical galaxy"],
-    ["45", "4725", "G", "P", "9.1", "Chevelure", "10.7'x7.6'", "One-armed spiral"],
-    ["46", "4631", "G", "P", "9.2", "Ch. Chasse", "15.5'x2.7'", "Whale Galaxy"],
-    ["47", "4656", "G", "P", "10.5", "Ch. Chasse", "15.3'x3.0'", "Hockey Stick Galaxy"],
-    ["48", "4244", "G", "P", "10.4", "Ch. Chasse", "16.6'x1.8'", "Silver Needle Galaxy"],
-    ["49", "4449", "G", "P", "9.4", "Ch. Chasse", "6.2'x4.4'", "Irregular galaxy"],
-    ["50", "5128", "G", "P", "6.7", "Centaure", "25.7'x20'", "Centaurus A"],
-    ["51", "5139", "AG", "P", "3.7", "Centaure", "36'", "Omega Centauri"],
-    ["52", "4945", "G", "P", "8.6", "Centaure", "20'x3.8'", "Spiral galaxy"],
-    ["53", "5457", "G", "P", "7.9", "Grande Ourse", "28.8'", "M101 Pinwheel Galaxy"],
-    ["54", "3077", "G", "H", "10.0", "Grande Ourse", "5.4'x4.5'", "M81 companion"],
-    ["55", "3628", "G", "P", "9.5", "Lion", "14.8'x3.0'", "Hamburger Galaxy"],
-    ["56", "3384", "G", "P", "9.9", "Lion", "5.9'x2.6'", "Elliptical galaxy"],
-    ["57", "3607", "G", "P", "9.9", "Lion", "4.9'x2.5'", "Elliptical galaxy"],
-    ["58", "4088", "G", "P", "10.3", "Grande Ourse", "5.8'x2.2'", "Distorted spiral"],
-    ["59", "4217", "G", "P", "11.2", "Grande Ourse", "5.1'x1.5'", "Edge-on spiral"],
-    ["60", "4605", "G", "P", "10.1", "Grande Ourse", "5.8'x2.2'", "Spiral galaxy"],
-    ["61", "5195", "G", "P", "9.6", "Ch. Chasse", "5.4'x4.3'", "M51 companion"],
-    ["62", "5466", "AG", "P", "9.1", "Bouvier", "9'", "Loose globular cluster"],
-    ["63", "4027", "G", "P", "11.0", "Corbeau", "3.2'x2.4'", "Barred spiral"],
-    ["64", "4753", "G", "P", "10.0", "Vierge", "6.0'x2.8'", "Lenticular galaxy"],
-    ["65", "4762", "G", "P", "10.3", "Vierge", "8.7'x1.7'", "Edge-on lenticular"],
-    ["66", "5248", "G", "P", "10.3", "Bouvier", "6.2'x4.5'", "Spiral galaxy"],
-    ["67", "5746", "G", "P", "10.3", "Vierge", "7.4'x1.3'", "Edge-on spiral"],
-    ["68", "6171", "AG", "E", "7.8", "Ophiuchus", "10'", "M107 Globular Cluster"],
-    ["69", "6235", "AG", "E", "10.0", "Ophiuchus", "5'", "Small globular"],
-    ["70", "6284", "AG", "E", "8.9", "Ophiuchus", "6.2'", "Globular cluster"],
-    ["71", "6287", "AG", "E", "9.3", "Ophiuchus", "4.8'", "Globular cluster"],
-    ["72", "6293", "AG", "E", "8.2", "Ophiuchus", "8.2'", "Globular cluster"],
-    ["73", "6304", "AG", "E", "8.2", "Ophiuchus", "8'", "Globular cluster"],
-    ["74", "6316", "AG", "E", "8.1", "Ophiuchus", "5.4'", "Globular cluster"],
-    ["75", "6342", "AG", "E", "9.5", "Ophiuchus", "4.4'", "Globular cluster"],
-    ["76", "6355", "AG", "E", "8.6", "Ophiuchus", "4.2'", "Globular cluster"],
-    ["77", "6356", "AG", "E", "8.2", "Ophiuchus", "10'", "Globular cluster"],
-    ["78", "6362", "AG", "E", "8.1", "Autel", "15'", "Globular cluster"],
-    ["79", "6388", "AG", "E", "6.8", "Scorpion", "10.4'", "Globular cluster"],
-    ["80", "6401", "AG", "E", "7.4", "Ophiuchus", "12'", "Globular cluster"],
-    ["81", "6517", "AG", "E", "10.1", "Ophiuchus", "4.3'", "Globular cluster"],
-    ["82", "6539", "AG", "E", "8.9", "Serpent", "7.9'", "Globular cluster"],
-    ["83", "6624", "AG", "E", "7.6", "Sagittaire", "8.8'", "Globular cluster"],
-    ["84", "6638", "AG", "E", "9.2", "Sagittaire", "7.3'", "Globular cluster"],
-    ["85", "6642", "AG", "E", "8.9", "Sagittaire", "4.8'", "Globular cluster"],
-    ["86", "6652", "AG", "E", "8.5", "Sagittaire", "6'", "Globular cluster"],
-    ["87", "6712", "AG", "E", "8.1", "Ecu", "9.8'", "Globular cluster"],
-    ["88", "6723", "AG", "E", "6.8", "Sagittaire", "13'", "Globulaire cluster"],
-    ["89", "6752", "AG", "E", "5.4", "Paon", "29'", "Great Peacock Globular"],
-    ["90", "6809", "AG", "E", "6.3", "Sagittaire", "19'", "M55 Globular Cluster"],
-    ["91", "6934", "AG", "A", "8.9", "Dauphin", "7.1'", "Globular cluster"],
-    ["92", "7006", "AG", "A", "10.6", "Dauphin", "3.6'", "Distant globular"],
-    ["93", "7492", "AG", "A", "11.2", "Verseau", "6.2'", "Globular cluster"],
-    ["94", "246", "NP", "A", "10.9", "Baleine", "3.8'", "Skull Nebula"],
-    ["95", "1535", "NP", "H", "9.6", "Eridan", "18\"", "Cleopatra's Eye"],
-    ["96", "2371", "NP", "H", "11.2", "Gémeaux", "54\"", "Double Bubble Nebula"],
-    ["97", "2392", "NP", "H", "9.1", "Gémeaux", "45\"", "Eskimo Nebula"],
-    ["98", "2438", "NP", "H", "10.8", "Poupe", "1.1'", "Planetary in M46"],
-    ["99", "2440", "NP", "H", "9.4", "Poupe", "1.3'", "Planetary nebula"],
-    ["100", "3132", "NP", "P", "9.2", "Voiles", "1.4'", "Eight-Burst Nebula"],
-    ["101", "40", "NP", "A", "12.3", "Céphée", "38\"", "Bow-Tie Nebula"],
-    ["102", "7635", "N", "A", "10.0", "Cassiopée", "15'x8'", "Bubble Nebula"],
-    ["103", "7538", "N", "A", "11.0", "Céphée", "10'x7'", "Emission nebula"],
-    ["104", "147", "G", "A", "9.5", "Cassiopée", "13'x8'", "Dwarf spheroid"],
-    ["105", "185", "G", "A", "9.2", "Cassiopée", "11'x10'", "Dwarf spheroid"],
-    ["106", "404", "G", "A", "10.3", "Andromède", "3.5'x3.5'", "Mirach's Ghost"],
-    ["107", "6946", "G", "A", "9.0", "Céphée", "11.5'x11.5'", "Fireworks Galaxy"],
-    ["108", "1023", "G", "A", "9.4", "Persée", "7.4'x2.5'", "Lenticular galaxy"],
-    ["109", "1275", "G", "H", "11.9", "Persée", "2.2'x1.7'", "Perseus A"],
-    ["110", "6781", "NP", "E", "11.4", "Aigle", "1.8'", "Planetary nebula"]
+    # AUTUMN (A)
+    ["1", "7009", "PN", "A", "8.3", "Aqr", "25\"", "Saturn Nebula"],
+    ["2", "7293", "PN", "A", "6.5", "Aqr", "12'50\"", "Helix Nebula"],
+    ["3", "7331", "G", "A", "9.5", "Peg", "10.7x4.0", "Large bright spiral"],
+    ["4", "7635", "EN", "A", "-", "Cas", "15x8", "Bubble Nebula"],
+    ["5", "7789", "OC", "A", "6.7", "Cas", "16'", "300* faint but rich"],
+    ["6", "185", "G", "A", "11.7", "Cas", "2x2", "Companion to M31"],
+    ["7", "281", "EN", "A", "-", "Cas", "35x30", "Large faint nebulosity"],
+    ["8", "457", "OC", "A", "6.4", "Cas", "13'", "80* Owl Cluster"],
+    ["9", "663", "OC", "A", "7.1", "Cas", "16'", "80* cluster"],
+    ["10", "I289", "PN", "A", "12.3", "Cas", "34\"", "Dim oval smudge"],
+    ["11", "7662", "PN", "A", "9.2", "And", "20\"", "Blue Snowball"],
+    ["12", "891", "G", "A", "10", "And", "13.5x2.8", "Classic edge-on"],
+    ["13", "253", "G", "A", "7.1", "Scl", "25.1x7.4", "Silver Coin Galaxy"],
+    ["14", "772", "G", "A", "10.3", "Ari", "7.1x4.5", "Diffuse spiral"],
+    ["15", "246", "PN", "A", "8.0", "Cet", "3'45\"", "Skull Nebula"],
+    ["16", "936", "G", "A", "10.1", "Cet", "5.2x4.4", "Near M77"],
+    ["17", "869", "OC", "A", "4.4", "Per", "30'/30'", "Double Cluster"],
+    ["18", "1023", "G", "A", "9.5", "Per", "8.7x4.3", "Lens-shaped galaxy"],
+    ["19", "1491", "EN", "A", "-", "Per", "3.0x3.0", "Small emission nebula"],
+    ["20", "1501", "PN", "A", "12.0", "Cam", "52\"", "Oyster Nebula"],
+    ["21", "1232", "G", "A", "9.9", "Eri", "7.8x6.9", "Face-on spiral"],
+    ["22", "1535", "PN", "A", "10.4", "Eri", "18\"", "Cleopatra's Eye"],
+    # WINTER (H)
+    ["23", "1514", "PN", "H", "10.8", "Tau", "1'54\"", "Crystal Ball Nebula"],
+    ["24", "1931", "E/RN", "H", "-", "Aur", "3.0x3.0", "Haze around 4 stars"],
+    ["25", "1788", "RN", "H", "-", "Ori", "8.0x5.0", "Reflection nebula"],
+    ["26", "1973", "E/RN", "H", "-", "Ori", "40x25", "Running Man Nebula"],
+    ["27", "2022", "PN", "H", "12.4", "Ori", "18\"", "Small annular PN"],
+    ["28", "2024", "EN", "H", "-", "Ori", "30x30", "Flame Nebula"],
+    ["29", "2194", "OC", "H", "8.5", "Ori", "10'", "80* rich cluster"],
+    ["30", "2371", "PN", "H", "13.0", "Gem", "55\"", "Double-lobed PN"],
+    ["31", "2392", "PN", "H", "8.3", "Gem", "13\"", "Eskimo Nebula"],
+    ["32", "2237", "EN", "H", "-", "Mon", "80x60", "Rosette Nebula"],
+    ["33", "2261", "E/RN", "H", "var", "Mon", "2x1", "Hubble's Variable Neb."],
+    ["34", "2359", "EN", "H", "-", "CMa", "8.0x6.0", "Thor's Helmet"],
+    ["35", "2440", "PN", "H", "10.3", "Pup", "14\"", "Planetary nebula"],
+    ["36", "2539", "OC", "H", "6.5", "Pup", "22'", "50* rich cluster"],
+    ["37", "2403", "G", "H", "8.4", "Cam", "17.8x11.0", "Large spiral"],
+    ["38", "2655", "G", "H", "10.1", "Cam", "5.1x4.4", "Bright ellipse"],
+    # SPRING (P)
+    ["39", "2683", "G", "P", "9.7", "Lyn", "9.3x2.5", "UFO Galaxy"],
+    ["40", "2841", "G", "P", "9.3", "UMa", "8.1x3.8", "Elongated spiral"],
+    ["41", "3079", "G", "P", "10.6", "UMa", "7.6x1.7", "Edge-on spiral"],
+    ["42", "3184", "G", "P", "9.7", "UMa", "6.9x6.8", "Face-on spiral"],
+    ["43", "3877", "G", "P", "10.9", "UMa", "5.4x1.5", "Edge-on"],
+    ["44", "3941", "G", "P", "9.8", "UMa", "3.8x2.5", "Small elliptical"],
+    ["45", "4026", "G", "P", "10.7", "UMa", "5.1x1.4", "Lens-shaped"],
+    ["46", "4088", "G", "P", "10.5", "UMa", "5.8x2.5", "Nearly edge-on"],
+    ["47", "4157", "G", "P", "11.9", "UMa", "6.9x1.7", "Thin sliver"],
+    ["48", "4605", "G", "P", "9.6", "UMa", "5.5x2.3", "Bright edge-on"],
+    ["49", "3115", "G", "P", "9.2", "Sex", "8.3x3.2", "Spindle Galaxy"],
+    ["50", "3242", "PN", "P", "8.6", "Hya", "16\"", "Ghost of Jupiter"],
+    ["51", "3003", "G", "P", "11.7", "LMi", "5.9x1.7", "Faint streak"],
+    ["52", "3344", "G", "P", "9.9", "LMi", "6.9x6.5", "Face-on spiral"],
+    ["53", "3432", "G", "P", "11.3", "LMi", "6.2x1.5", "Faint flat streak"],
+    ["54", "2903", "G", "P", "8.9", "Leo", "12.6x6.6", "Large bright spiral"],
+    ["55", "3384", "G", "P", "9.9", "Leo", "5.9x2.6", "Near M105"],
+    ["56", "3521", "G", "P", "8.7", "Leo", "9.5x5.0", "Bright spiral"],
+    ["57", "3607", "G", "P", "10.0", "Leo", "3.7x3.2", "Elliptical galaxy"],
+    ["58", "3628", "G", "P", "9.5", "Leo", "14.8x3.6", "Hamburger Galaxy"],
+    ["59", "4111", "G", "P", "10.8", "CVn", "4.8x1.1", "Lens-shaped edge-on"],
+    ["60", "4214", "G", "P", "9.7", "CVn", "7.9x6.3", "Large irregular"],
+    ["61", "4244", "G", "P", "10.2", "CVn", "16.2x2.5", "Large edge-on"],
+    ["62", "4449", "G", "P", "9.4", "CVn", "5.1x3.7", "Rectangular shape"],
+    ["63", "4490", "G", "P", "9.8", "CVn", "5.9x3.1", "Cocoon Galaxy"],
+    ["64", "4631", "G", "P", "9.3", "CVn", "15.1x3.3", "Whale Galaxy"],
+    ["65", "4656", "G", "P", "10.4", "CVn", "13.8x3.3", "Hockey Stick Galaxy"],
+    ["66", "5005", "G", "P", "9.8", "CVn", "5.4x2.7", "Bright elongated"],
+    ["67", "5033", "G", "P", "10.1", "CVn", "10.5x5.6", "Large bright spiral"],
+    ["68", "4274", "G", "P", "10.4", "Com", "6.9x2.8", "Spiral galaxy"],
+    ["69", "4414", "G", "P", "10.2", "Com", "3.6x2.2", "Bright spiral"],
+    ["70", "4494", "G", "P", "9.8", "Com", "4.8x3.8", "Bright elliptical"],
+    ["71", "4559", "G", "P", "9.8", "Com", "10.5x4.9", "Large spiral"],
+    ["72", "4565", "G", "P", "9.6", "Com", "16.2x2.8", "Needle Galaxy"],
+    ["73", "4725", "G", "P", "9.2", "Com", "11.0x7.9", "Very bright spiral"],
+    ["74", "4038", "G", "P", "10.7", "Crv", "~3x2", "Antennae Galaxies"],
+    ["75", "4361", "PN", "P", "10.3", "Crv", "45\"", "Small and bright"],
+    ["76", "4216", "G", "P", "9.9", "Vir", "8.3x2.2", "Nearly edge-on"],
+    ["77", "4388", "G", "P", "11.0", "Vir", "5.1x1.4", "Markarian's Chain"],
+    ["78", "4438", "G", "P", "10.1", "Vir", "9.3x3.9", "The Eyes"],
+    ["79", "4517", "G", "P", "10.5", "Vir", "10.2x1.9", "Faint edge-on"],
+    ["80", "4526", "G", "P", "9.6", "Vir", "7.6x2.3", "Lost Galaxy"],
+    ["81", "4535", "G", "P", "9.8", "Vir", "6.8x5.0", "Near M49"],
+    ["82", "4567", "G", "P", "~11", "Vir", "4.6x2.1", "Siamese Twins"],
+    ["83", "4699", "G", "P", "9.6", "Vir", "3.5x2.7", "Small and bright"],
+    ["84", "4762", "G", "P", "10.2", "Vir", "8.7x1.6", "Flattest galaxy"],
+    ["85", "5746", "G", "P", "10.6", "Vir", "7.9x1.7", "Fine edge-on"],
+    ["86", "5466", "GC", "P", "9.1", "Boo", "11.0'", "Loose class XII"],
+    ["87", "5907", "G", "P", "10.4", "Dra", "12.3x1.8", "Splinter Galaxy"],
+    ["88", "6503", "G", "P", "10.2", "Dra", "6.2x2.3", "Elongated spiral"],
+    ["89", "6543", "PN", "P", "8.8", "Dra", "18\"", "Cat's Eye Nebula"],
+    # SUMMER (E)
+    ["90", "6210", "PN", "E", "9.3", "Her", "14\"", "Turtle Nebula"],
+    ["91", "6369", "PN", "E", "10.4", "Oph", "30\"", "Little Ghost"],
+    ["92", "6572", "PN", "E", "9.0", "Oph", "8\"", "Emerald Nebula"],
+    ["93", "6633", "OC", "E", "4.6", "Oph", "27'", "Italy Cluster"],
+    ["94", "6712", "GC", "E", "8.2", "Sct", "7.2'", "Small globular"],
+    ["95", "6781", "PN", "E", "11.8", "Aql", "1'49\"", "Planetary nebula"],
+    ["96", "6819", "OC", "E", "7.3", "Cyg", "5'", "150* faint but rich"],
+    ["97", "6826", "PN", "E", "9.8", "Cyg", "30\"", "Blinking Planetary"],
+    ["98", "6888", "SNR", "E", "-", "Cyg", "20x10", "Crescent Nebula"],
+    ["99a", "6960", "SNR", "E", "-", "Cyg", "70x6", "Western Veil Nebula"],
+    ["99b", "6992", "SNR", "E", "-", "Cyg", "78x8", "Eastern Veil Nebula"],
+    ["100", "7000", "EN", "E", "-", "Cyg", "120x100", "North America Neb."],
+    ["101", "7027", "PN", "E", "10.4", "Cyg", "15\"", "Protoplanetary neb."],
+    ["102", "6445", "PN", "E", "11.8", "Sgr", "34\"", "Box Nebula"],
+    ["103", "6520", "OC", "E", "8.1", "Sgr", "6'", "Near Dark Neb B86"],
+    ["104", "6818", "PN", "E", "9.9", "Sgr", "17\"", "Little Gem Nebula"],
+    ["105", "6802", "OC", "E", "8.8", "Vul", "3.2'", "At end of Coathanger"],
+    ["106", "6940", "OC", "E", "6.3", "Vul", "31'", "60* rich cluster"],
+    ["107", "6939", "OC", "E", "7.8", "Cep", "8'", "80* very rich"],
+    ["108", "6946", "G", "E", "8.9", "Cep", "11.0x9.8", "Fireworks Galaxy"],
+    ["109", "7129", "RN", "E", "-", "Cep", "8x7", "Reflection nebula"],
+    ["110", "40", "PN", "E", "10.2", "Cep", "37\"", "Bow-Tie Nebula"]
 ]
 
-# --- CODE ---
+# --- FONCTIONS DE TRAITEMENT ---
 
 def make_thumbnail(src, dest):
-    """Crée une vignette avec postfixe dans le dossier thumbnails"""
     if not os.path.exists("thumbnails"): 
         os.makedirs("thumbnails")
     if os.path.exists(dest) and os.path.getmtime(src) <= os.path.getmtime(dest): 
@@ -245,7 +253,6 @@ def generate_catalog():
         header {{ text-align: center; margin-bottom: 20px; }}
         .score {{ color: #888; font-size: 0.6em; }}
         
-        /* Filtres */
         .filter-bar {{ text-align: center; margin-bottom: 30px; }}
         .filter-btn {{ background: #252525; border: 1px solid #444; color: #aaa; padding: 8px 16px; margin: 0 4px; border-radius: 20px; cursor: pointer; transition: 0.2s; }}
         .filter-btn:hover {{ border-color: #4dabf7; color: #fff; }}
@@ -256,38 +263,19 @@ def generate_catalog():
         .card:hover {{ transform: scale(1.03); border-color: #4dabf7; }}
         .img-box {{ width: 100%; aspect-ratio: 1 / 1; background: #2c2c2c; display: flex; justify-content: center; align-items: center; cursor: pointer; }}
         .card img {{ width: 100%; height: 100%; object-fit: cover; }}
-        .placeholder {{ text-align: center; color: #666; font-size: 0.8em; }}
+        .placeholder {{ text-align: center; color: #666; font-size: 0.8em; padding: 5px; }}
         .title {{ background: #252525; padding: 10px; text-align: center; font-weight: bold; font-size: 0.85em; }}
         .title a {{ color: #fff; text-decoration: none; }}
         
         #tooltip {{ position: fixed; display: none; background: rgba(20,20,20,0.98); border: 1px solid #4dabf7; padding: 12px; border-radius: 6px; z-index: 2000; pointer-events: none; font-size: 0.85em; box-shadow: 0 4px 15px #000; min-width: 200px; }}
         .lbl {{ color: #4dabf7; font-weight: bold; margin-right: 5px; }}
         
-        /* Modal Style Messier V1 */
-        #modal {{ 
-            display: none; 
-            position: fixed; 
-            z-index: 3000; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.9); 
-            overflow: hidden; 
-            cursor: default;
-        }}
-        #modal-img {{ 
-            position: absolute; 
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            cursor: grab; 
-            user-select: none; 
-            max-width: 95%; 
-            max-height: 95%; 
-            transition: transform 0.05s linear;
-        }}
+        #modal {{ display: none; position: fixed; z-index: 3000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); overflow: hidden; }}
+        #modal-img {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); cursor: grab; user-select: none; max-width: 95%; max-height: 95%; transition: transform 0.05s linear; }}
         #modal:active #modal-img {{ cursor: grabbing; }}
     </style></head><body>
     <header>
-        <h1>{t['title']}<br><span class="score">({imaged_count}/110)</span></h1>
+        <h1>{t['title']}<br><span class="score">({imaged_count}/{len(rasc_data)})</span></h1>
     </header>
 
     <div class="filter-bar">
@@ -317,17 +305,10 @@ def generate_catalog():
     <script>
         function filterS(season, btn) {{
             const cards = document.querySelectorAll('.card');
-            const btns = document.querySelectorAll('.filter-btn');
-            
-            btns.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-
             cards.forEach(card => {{
-                if (season === 'all' || card.getAttribute('data-season') === season) {{
-                    card.style.display = 'block';
-                }} else {{
-                    card.style.display = 'none';
-                }}
+                card.style.display = (season === 'all' || card.getAttribute('data-season') === season) ? 'block' : 'none';
             }});
         }}
 
@@ -348,47 +329,22 @@ def generate_catalog():
 
         let m = document.getElementById("modal"), mi = document.getElementById("modal-img");
         let scale = 1, posX = 0, posY = 0, isDragging = false, startX, startY;
-
-        function updateTransform() {{
-            mi.style.transform = `translate(calc(-50% + ${{posX}}px), calc(-50% + ${{posY}}px)) scale(${{scale}})`;
-        }}
-
-        function openM(s) {{
-            if(!s) return;
-            scale = 1; posX = 0; posY = 0;
-            mi.src = s;
-            m.style.display = "block";
-            updateTransform();
-        }}
-
+        function updateTransform() {{ mi.style.transform = `translate(calc(-50% + ${{posX}}px), calc(-50% + ${{posY}}px)) scale(${{scale}})`; }}
+        function openM(s) {{ if(!s) return; scale = 1; posX = 0; posY = 0; mi.src = s; m.style.display = "block"; updateTransform(); }}
         function closeM() {{ m.style.display = "none"; }}
 
         m.addEventListener('wheel', e => {{
             e.preventDefault();
-            const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            scale = Math.min(Math.max(0.5, scale * delta), 10);
+            scale = Math.min(Math.max(0.5, scale * (e.deltaY > 0 ? 0.9 : 1.1)), 10);
             updateTransform();
         }}, {{passive: false}});
-
-        mi.addEventListener('mousedown', e => {{
-            isDragging = true;
-            startX = e.clientX - posX;
-            startY = e.clientY - posY;
-            e.preventDefault();
-        }});
-
-        window.addEventListener('mousemove', e => {{
-            if (!isDragging) return;
-            posX = e.clientX - startX;
-            posY = e.clientY - startY;
-            updateTransform();
-        }});
-
+        mi.addEventListener('mousedown', e => {{ isDragging = true; startX = e.clientX - posX; startY = e.clientY - posY; e.preventDefault(); }});
+        window.addEventListener('mousemove', e => {{ if (isDragging) {{ posX = e.clientX - startX; posY = e.clientY - startY; updateTransform(); }} }});
         window.addEventListener('mouseup', () => isDragging = false);
     </script></body></html>"""
 
     with open(out_file, "w", encoding="utf-8") as f: f.write(html)
-    print(f"Catalogue généré : {out_file}")
+    print(f"Catalogue généré : {out_file} ({len(rasc_data)} objets)")
 
 if __name__ == "__main__":
     generate_catalog()
