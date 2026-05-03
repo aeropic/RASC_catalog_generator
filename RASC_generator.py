@@ -194,9 +194,11 @@ def get_image_info(filepath):
     return date_str, filename
 
 def find_image(directory, ngc_id):
+    # Recherche flexible : "NGC" suivi de l'ID n'importe où dans le nom du fichier
     pattern = re.compile(rf"NGC{ngc_id}(?!\d)", re.IGNORECASE)
     for f in os.listdir(directory):
-        if pattern.search(f) and f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')): return f
+        if pattern.search(f) and f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+            return f
     return None
 
 def generate_catalog():
