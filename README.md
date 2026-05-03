@@ -30,7 +30,7 @@ The .bat file, of course, only runs on PC...
 Let me know if it works for you too and if you see any improvements we could make! 
 
 Note: Open and edit the .bat file to specify the path to your Python installation. I pointed to SIRIL's path:
-:: Launch Python on the script located in the same folder:
-"C:\Program Files\Siril\python\python.exe" "RASC_generator.py"
+- :: Launch Python on the script located in the same folder:
+- "C:\Program Files\Siril\python\python.exe" "RASC_generator.py"
 
 You can easily translate the script in any langage as all strings are gathered at the top of the script... Meanwhile in french except the object description in english!
