@@ -57,7 +57,8 @@ texts = {
         'size': "Taille",
         'description': "Description",
         'date': "Date",
-        'file': "Fichier"
+        'file': "Fichier",
+        'all': "Tous"
     }
 }
 
@@ -194,7 +195,6 @@ def get_image_info(filepath):
     return date_str, filename
 
 def find_image(directory, ngc_id):
-    # Recherche flexible : "NGC" suivi de l'ID n'importe où dans le nom du fichier
     pattern = re.compile(rf"NGC{ngc_id}(?!\d)", re.IGNORECASE)
     for f in os.listdir(directory):
         if pattern.search(f) and f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
@@ -221,26 +221,42 @@ def generate_catalog():
     html = f"""<!DOCTYPE html><html lang="{lang}"><head><meta charset="UTF-8"><title>{t['title']}</title>
     <style>
         body {{ font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; margin: 0; padding: 20px; }}
-        header {{ text-align: center; margin-bottom: 30px; }}
+        header {{ text-align: center; margin-bottom: 20px; }}
         .score {{ color: #888; font-size: 0.6em; }}
+        
+        /* Filtres */
+        .filter-bar {{ text-align: center; margin-bottom: 30px; }}
+        .filter-btn {{ background: #252525; border: 1px solid #444; color: #aaa; padding: 8px 16px; margin: 0 4px; border-radius: 20px; cursor: pointer; transition: 0.2s; }}
+        .filter-btn:hover {{ border-color: #4dabf7; color: #fff; }}
+        .filter-btn.active {{ background: #4dabf7; color: #fff; border-color: #4dabf7; }}
+
         .container {{ display: grid; grid-template-columns: repeat(auto-fill, minmax({CARD_SIZE_MIN}, 1fr)); gap: 20px; }}
-        .card {{ background: #1e1e1e; border-radius: 8px; border: 1px solid #333; overflow: hidden; transition: 0.2s; }}
+        .card {{ background: #1e1e1e; border-radius: 8px; border: 1px solid #333; overflow: hidden; transition: 0.2s; display: block; }}
         .card:hover {{ transform: scale(1.03); border-color: #4dabf7; }}
         .img-box {{ width: 100%; aspect-ratio: 1 / 1; background: #2c2c2c; display: flex; justify-content: center; align-items: center; cursor: pointer; }}
         .card img {{ width: 100%; height: 100%; object-fit: cover; }}
         .placeholder {{ text-align: center; color: #666; font-size: 0.8em; }}
         .title {{ background: #252525; padding: 10px; text-align: center; font-weight: bold; font-size: 0.85em; }}
         .title a {{ color: #fff; text-decoration: none; }}
+        
         #tooltip {{ position: fixed; display: none; background: rgba(20,20,20,0.98); border: 1px solid #4dabf7; padding: 12px; border-radius: 6px; z-index: 2000; pointer-events: none; font-size: 0.85em; box-shadow: 0 4px 15px #000; min-width: 200px; }}
-        .tp-h {{ border-bottom: 1px solid #444; margin-bottom: 8px; padding-bottom: 5px; }}
-        .tp-f {{ color: #4dabf7; font-weight: bold; font-family: monospace; }}
-        .tp-d {{ color: #aaa; font-style: italic; font-size: 0.9em; }}
         .lbl {{ color: #4dabf7; font-weight: bold; margin-right: 5px; }}
         #modal {{ display: none; position: fixed; z-index: 3000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); cursor: grab; }}
-        #modal-img {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 95%; max-height: 95%; transition: 0.1s; }}
+        #modal-img {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 95%; max-height: 95%; }}
     </style></head><body>
-    <header><h1>{t['title']}<br><span class="score">({imaged_count}/110)</span></h1></header>
-    <div class="container">"""
+    <header>
+        <h1>{t['title']}<br><span class="score">({imaged_count}/110)</span></h1>
+    </header>
+
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterS('all', this)">{t['all']}</button>
+        <button class="filter-btn" onclick="filterS('Printemps', this)">Printemps</button>
+        <button class="filter-btn" onclick="filterS('Été', this)">Été</button>
+        <button class="filter-btn" onclick="filterS('Automne', this)">Automne</button>
+        <button class="filter-btn" onclick="filterS('Hiver', this)">Hiver</button>
+    </div>
+
+    <div class="container" id="main-grid">"""
 
     for item, filename, meta in entries:
         r_id, n_id, o_type, o_season, mag, const, size, desc = item
@@ -254,10 +270,27 @@ def generate_catalog():
 
     html += f"""</div><div id="tooltip"></div><div id="modal" onclick="closeM()"><img id="modal-img"></div>
     <script>
+        // Logique de filtrage
+        function filterS(season, btn) {{
+            const cards = document.querySelectorAll('.card');
+            const btns = document.querySelectorAll('.filter-btn');
+            
+            btns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            cards.forEach(card => {{
+                if (season === 'all' || card.getAttribute('data-season') === season) {{
+                    card.style.display = 'block';
+                }} else {{
+                    card.style.display = 'none';
+                }}
+            }});
+        }}
+
         const tt = document.getElementById('tooltip');
         function showT(e, el) {{
             const d = el.dataset;
-            let c = d.file ? `<div class="tp-h"><div class="tp-f">${{d.file}}</div><div class="tp-d">{t['date']}: ${{d.date}}</div></div>` : "";
+            let c = d.file ? `<div style="border-bottom:1px solid #444;margin-bottom:8px;padding-bottom:5px;"><div style="color:#4dabf7;font-weight:bold;font-family:monospace;">${{d.file}}</div><div style="color:#aaa;font-style:italic;font-size:0.9em;">{t['date']}: ${{d.date}}</div></div>` : "";
             c += `<div><span class="lbl">{t['type']}:</span>${{d.type}}</div><div><span class="lbl">{t['season']}:</span>${{d.season}}</div>
                   <div><span class="lbl">{t['constellation']}:</span>${{d.const}}</div><div><span class="lbl">{t['magnitude']}:</span>${{d.mag}}</div>
                   <div><span class="lbl">{t['size']}:</span>${{d.size}}</div><div style="margin-top:8px;color:#eee"><em>${{d.desc}}</em></div>`;
@@ -268,15 +301,13 @@ def generate_catalog():
             tt.style.left = x + 'px'; tt.style.top = y + 'px';
         }}
         function hideT() {{ tt.style.display = 'none'; }}
-        let m = document.getElementById("modal"), mi = document.getElementById("modal-img"), sc = 1, trX = -50, trY = -50;
-        function openM(s) {{ if(!s) return; m.style.display="block"; mi.src=s; sc=1; trX=-50; trY=-50; up(); }}
+        let m = document.getElementById("modal"), mi = document.getElementById("modal-img");
+        function openM(s) {{ if(!s) return; m.style.display="block"; mi.src=s; }}
         function closeM() {{ m.style.display="none"; }}
-        function up() {{ mi.style.transform = `translate(${{trX}}%, ${{trY}}%) scale(${{sc}})`; }}
-        m.addEventListener("wheel", (e) => {{ e.preventDefault(); sc = Math.min(Math.max(0.5, sc + e.deltaY * -0.001), 5); up(); }}, {{passive:false}});
     </script></body></html>"""
 
     with open(out_file, "w", encoding="utf-8") as f: f.write(html)
-    print(f"Catalogue généré : {out_file} ({imaged_count}/110)")
+    print(f"Catalogue généré avec filtres : {out_file}")
 
 if __name__ == "__main__":
     generate_catalog()
